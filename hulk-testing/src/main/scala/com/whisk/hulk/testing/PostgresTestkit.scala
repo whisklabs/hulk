@@ -6,6 +6,7 @@ import java.util.concurrent.atomic.AtomicReference
 import com.github.mauricio.async.db.Configuration
 import com.github.mauricio.async.db.postgresql.PostgreSQLConnection
 import com.whisk.hulk.PostgresClient
+import com.whisk.hulk.cockroach.CockroachColumnDecoderRegistry
 import org.scalatest.Suite
 import org.slf4j.LoggerFactory
 
@@ -59,7 +60,8 @@ trait PostgresTestkit extends DockerCockroachService { self: Suite =>
       port = port,
       password = PostgresPassword
     )
-    val connection = new PostgreSQLConnection(conf)
+    val connection =
+      new PostgreSQLConnection(conf, decoderRegistry = CockroachColumnDecoderRegistry.Instance)
     Await.result(connection.connect, 5.seconds)
     PostgresClient.from(connection)
   }

@@ -27,6 +27,7 @@ class IntegrationSpec extends FunSuite with PostgresTestkit with ScalaFutures wi
 
     val createTableResult = client.executeUpdate("""
         |CREATE TABLE %s (
+        | id SERIAL PRIMARY KEY,
         | str_field VARCHAR(40),
         | int_field INT,
         | double_field DOUBLE PRECISION,
@@ -38,8 +39,9 @@ class IntegrationSpec extends FunSuite with PostgresTestkit with ScalaFutures wi
 
   def insertSampleData(): Unit = {
     val insertDataQuery =
-      client.executeUpdate("""
-          |INSERT INTO %s VALUES
+      client.executeUpdate(
+        """
+          |INSERT INTO %s(str_field, int_field, double_field, timestamp_field, bool_field) VALUES
           | ('hello', 1234, 10.5, '2015-01-08 11:55:12-08:00', TRUE),
           | ('hello', 5557, -4.51, '2015-01-08 12:55:12-08:00', TRUE),
           | ('hello', 7787, -42.51, '2013-12-24 07:01:00-08:00', FALSE),
@@ -67,7 +69,7 @@ class IntegrationSpec extends FunSuite with PostgresTestkit with ScalaFutures wi
     val firstRow = resultRows.head
 
     firstRow.getOption[String]("str_field") must equal(Some("hello"))
-    firstRow.get[Int]("int_field") must equal(7787)
+    firstRow.get[Long]("int_field") must equal(7787)
     firstRow.getOption[Double]("double_field") must equal(Some(-42.51))
     firstRow.get[Instant]("timestamp_field") must equal(
       new Timestamp(1387897260000L).toInstant
@@ -81,6 +83,31 @@ class IntegrationSpec extends FunSuite with PostgresTestkit with ScalaFutures wi
     lastRow.getOption[Double]("double_field") mustBe 'empty
     lastRow.getOption[Boolean]("bool_field") mustBe 'empty
     assert(lastRow.getTry[Int]("int_field").isFailure)
+  }
+
+  test("insert and select rows by id") {
+    cleanDb()
+
+    val resultRows = client
+      .prepareAndQuery(
+        s"""INSERT INTO $pgTestTable(str_field, int_field, double_field, timestamp_field, bool_field)
+              VALUES ('string_key', 9012, 15.8, '2015-01-09 16:55:12+05:00', FALSE)
+              RETURNING *"""
+      )(identity)
+      .futureValue
+
+    resultRows.size mustEqual 1
+
+    val firstRow = resultRows.head
+
+    val id = firstRow.get[Long]("id")
+
+    val selectedById = client
+      .prepareAndQuery("SELECT * FROM %s WHERE id=?".format(pgTestTable), id)(identity)
+      .futureValue
+
+    selectedById.size mustEqual 1
+    selectedById.head.get[Long]("id") mustEqual id
   }
 
   test("update row") {
@@ -230,7 +257,7 @@ class IntegrationSpec extends FunSuite with PostgresTestkit with ScalaFutures wi
 
     client
       .prepareAndExecute(
-        s"""INSERT INTO $pgTestTable
+        s"""INSERT INTO $pgTestTable(str_field, int_field, double_field, timestamp_field, bool_field)
               VALUES ('delete', 9012, 15.8, '2015-01-09 16:55:12+05:00', FALSE)"""
       )
       .futureValue

@@ -2,11 +2,11 @@ package com.whisk.hulk
 
 import com.github.mauricio.async.db
 import com.github.mauricio.async.db.pool.{ConnectionPool, PoolConfiguration}
-import com.github.mauricio.async.db.postgresql.pool.PostgreSQLConnectionFactory
+import com.whisk.hulk.cockroach.CockroachConnectionFactory
 
-import scala.concurrent.{Await, Future}
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
+import scala.concurrent.{Await, Future}
 
 trait PostgresClient {
 
@@ -97,7 +97,7 @@ object PostgresClient {
   def from(connection: db.Connection): PostgresClient = new PostgresClientImpl(connection)
 
   def pooled(conf: db.Configuration, connectTimeout: Duration = 5.seconds): PostgresClient = {
-    val factory = new PostgreSQLConnectionFactory(conf)
+    val factory = new CockroachConnectionFactory(conf)
     val pool = new ConnectionPool(factory, PoolConfiguration.Default)
     from(Await.result(pool.connect, connectTimeout))
   }

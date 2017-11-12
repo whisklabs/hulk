@@ -54,12 +54,11 @@ object ValueDecoder {
 
   implicit val int: ValueDecoder[Int] = fromPF {
     case v: java.lang.Integer => v
-    case v: java.lang.Long    => v.toInt //Cockroach returns Long values
     case v: Int               => v
   }
 
   implicit val long: ValueDecoder[Long] = fromPF {
-    case v: java.lang.Long    => v.toInt
+    case v: java.lang.Long    => v
     case v: Long              => v
     case v: java.lang.Integer => v.toLong
     case v: Int               => v.toLong
