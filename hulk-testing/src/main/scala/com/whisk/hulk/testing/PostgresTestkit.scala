@@ -13,7 +13,7 @@ import scala.concurrent.Await
 import scala.concurrent.duration._
 import scala.io.Source
 
-trait PostgresTestkit extends DockerPostgresService { self: Suite =>
+trait PostgresTestkit extends DockerCockroachService { self: Suite =>
 
   private val log = LoggerFactory.getLogger(classOf[PostgresTestkit])
 

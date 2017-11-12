@@ -25,11 +25,12 @@ class CirceDecodersTest extends FunSuite with MustMatchers with PostgresTestkit 
 
   private def createTable() = {
     client.query("""
-        |CREATE TABLE recipes (
+        |CREATE DATABASE IF NOT EXISTS test;
+        |CREATE TABLE test.recipes (
         |  id   VARCHAR(36) PRIMARY KEY,
         |  name VARCHAR(128) NOT NULL,
         |  tags VARCHAR(128),
-        |  data JSON
+        |  data STRING
         |)
       """.stripMargin).futureValue
   }
@@ -42,14 +43,14 @@ class CirceDecodersTest extends FunSuite with MustMatchers with PostgresTestkit 
     val json = Json.obj("mealType" := "Lunch")
 
     client
-      .prepareAndExecute("insert into recipes(id, name, data) values (?, ?, ?)",
+      .prepareAndExecute("insert into test.recipes(id, name, data) values (?, ?, ?)",
                          recipe.id,
                          recipe.name,
                          json.noSpaces)
       .futureValue mustEqual 1
 
     val row: Row = client
-      .prepareAndQuery("select data from recipes where id = ?", recipe.id)(identity)
+      .prepareAndQuery("select data from test.recipes where id = ?", recipe.id)(identity)
       .map(_.head)
       .futureValue
 
