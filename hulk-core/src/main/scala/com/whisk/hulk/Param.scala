@@ -5,5 +5,5 @@ case class Param[T](value: T)(implicit val encoder: ValueEncoder[T]) {
 }
 
 object Param {
-  implicit def convert[T : ValueEncoder](t: T): Param[T] = Param(t)
+  implicit def convert[T: ValueEncoder](t: T): Param[T] = Param(t)
 }

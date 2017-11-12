@@ -72,4 +72,4 @@ lazy val tests = project
     publishLocal := {},
     packagedArtifacts := Map.empty
   )
-  .dependsOn(core % Test, testing % Test)
+  .dependsOn(core % Test, circe % Test, testing % Test)

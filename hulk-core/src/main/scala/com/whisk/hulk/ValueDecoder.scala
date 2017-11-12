@@ -8,6 +8,14 @@ import scala.util.{Failure, Success, Try}
 trait ValueDecoder[T] {
 
   def decode(any: Any): Try[T]
+
+  def map[A](f: T => A): ValueDecoder[A] = ValueDecoder.instance { any: Any =>
+    decode(any).map(f)
+  }
+
+  def flatMap[A](f: T => Try[A]): ValueDecoder[A] = ValueDecoder.instance { any: Any =>
+    decode(any).flatMap(f)
+  }
 }
 
 object ValueDecoder {
@@ -52,7 +60,7 @@ object ValueDecoder {
   implicit val long: ValueDecoder[Long] = directType[Long]
 
   implicit val float: ValueDecoder[Float] = fromPF {
-    case f: Float  => f
+    case f: Float => f
   }
 
   implicit val double: ValueDecoder[Double] = fromPF {
