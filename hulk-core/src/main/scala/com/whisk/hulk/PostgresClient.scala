@@ -12,6 +12,13 @@ class PostgresClient(connection: db.Connection) {
     ResultSet(rs.map(rowData => RowImpl(indexMap, rowData)))
   }
 
+  private def toResultSet(result: db.QueryResult): ResultSet = {
+    result.rows match {
+      case Some(resultSet) => mapResultSet(resultSet)
+      case None            => throw new Exception("not a select statement result")
+    }
+  }
+
   def query(sql: String): Future[QueryResponse] = {
     connection
       .sendQuery(sql)
@@ -19,15 +26,10 @@ class PostgresClient(connection: db.Connection) {
   }
 
   def fetch(sql: String): Future[ResultSet] = {
-    connection.sendQuery(sql).map { result =>
-      result.rows match {
-        case Some(resultSet) => mapResultSet(resultSet)
-        case None            => throw new Exception("not a select statement result")
-      }
-    }
+    connection.sendQuery(sql).map(toResultSet)
   }
 
-  def execute(sql: String): Future[OK] = {
+  def executeUpdate(sql: String): Future[OK] = {
     connection.sendQuery(sql).map(r => OK(r.rowsAffected))
   }
 
@@ -35,11 +37,26 @@ class PostgresClient(connection: db.Connection) {
    * Run a single SELECT query and wrap the results with the provided function.
    */
   def select[T](sql: String)(f: Row => T): Future[Seq[T]] = {
-    fetch(sql).map {
-      case ResultSet(rows) =>
-        rows.map(f)
-    }
+    fetch(sql).map(_.rows.map(f))
+  }
+
+  /*
+   * Issue a single, prepared SELECT query and wrap the response rows with the provided function.
+   */
+  def prepareAndQuery[T](sql: String, params: Param[_]*)(f: Row => T): Future[Seq[T]] = {
+    connection
+      .sendPreparedStatement(sql, params.map(_.encoded))
+      .map(result => toResultSet(result).rows.map(f))
+  }
+
+  /*
+   * Issue a single, prepared arbitrary query without an expected result set, and provide the affected row count
+   */
+  def prepareAndExecute(sql: String, params: Param[_]*): Future[Long] = {
+    connection.sendPreparedStatement(sql, params.map(_.encoded)).map(_.rowsAffected)
   }
 
   def isConnected: Boolean = connection.isConnected
+
+  def close(): Future[Unit] = connection.disconnect.map(_ => Unit)
 }

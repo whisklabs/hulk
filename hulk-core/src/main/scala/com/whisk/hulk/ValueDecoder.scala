@@ -51,6 +51,10 @@ object ValueDecoder {
 
   implicit val long: ValueDecoder[Long] = directType[Long]
 
+  implicit val float: ValueDecoder[Float] = fromPF {
+    case f: Float  => f
+  }
+
   implicit val double: ValueDecoder[Double] = fromPF {
     case f: Float  => f
     case f: Double => f
