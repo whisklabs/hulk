@@ -58,7 +58,12 @@ object ValueDecoder {
     case v: Int               => v
   }
 
-  implicit val long: ValueDecoder[Long] = directType[Long]
+  implicit val long: ValueDecoder[Long] = fromPF {
+    case v: java.lang.Long    => v.toInt
+    case v: Long              => v
+    case v: java.lang.Integer => v.toLong
+    case v: Int               => v.toLong
+  }
 
   implicit val float: ValueDecoder[Float] = fromPF {
     case f: Float => f
