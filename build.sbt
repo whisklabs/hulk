@@ -46,7 +46,6 @@ lazy val testing = project
     commonSettings,
     libraryDependencies ++= Seq(
       "com.whisk" %% "docker-testkit-scalatest" % "0.10.0-beta1",
-      "org.jdbi" % "jdbi3-core" % "3.0.0-rc1",
       "org.postgresql" % "postgresql" % "42.1.4"
     )
   )

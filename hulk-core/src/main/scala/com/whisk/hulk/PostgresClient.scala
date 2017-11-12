@@ -1,11 +1,42 @@
 package com.whisk.hulk
 
 import com.github.mauricio.async.db
+import com.github.mauricio.async.db.pool.{ConnectionPool, PoolConfiguration}
+import com.github.mauricio.async.db.postgresql.pool.PostgreSQLConnectionFactory
 
-import scala.concurrent.Future
+import scala.concurrent.{Await, Future}
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.duration._
 
-class PostgresClient(connection: db.Connection) {
+trait PostgresClient {
+
+  def query(sql: String): Future[QueryResponse]
+
+  def fetch(sql: String): Future[ResultSet]
+
+  def executeUpdate(sql: String): Future[OK]
+
+  /*
+   * Run a single SELECT query and wrap the results with the provided function.
+   */
+  def select[T](sql: String)(f: Row => T): Future[Seq[T]]
+
+  /*
+   * Issue a single, prepared SELECT query and wrap the response rows with the provided function.
+   */
+  def prepareAndQuery[T](sql: String, params: Param[_]*)(f: Row => T): Future[Seq[T]]
+
+  /*
+   * Issue a single, prepared arbitrary query without an expected result set, and provide the affected row count
+   */
+  def prepareAndExecute(sql: String, params: Param[_]*): Future[Long]
+
+  def isConnected: Boolean
+
+  def close(): Future[Unit]
+}
+
+private class PostgresClientImpl(connection: db.Connection) extends PostgresClient {
 
   private def mapResultSet(rs: db.ResultSet): ResultSet = {
     val indexMap: Map[String, Int] = rs.columnNames.zipWithIndex.toMap
@@ -59,4 +90,15 @@ class PostgresClient(connection: db.Connection) {
   def isConnected: Boolean = connection.isConnected
 
   def close(): Future[Unit] = connection.disconnect.map(_ => Unit)
+}
+
+object PostgresClient {
+
+  def from(connection: db.Connection): PostgresClient = new PostgresClientImpl(connection)
+
+  def pooled(conf: db.Configuration, connectTimeout: Duration = 5.seconds): PostgresClient = {
+    val factory = new PostgreSQLConnectionFactory(conf)
+    val pool = new ConnectionPool(factory, PoolConfiguration.Default)
+    from(Await.result(pool.connect, connectTimeout))
+  }
 }
