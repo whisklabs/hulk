@@ -8,7 +8,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
 import scala.concurrent.{Await, Future}
 
-trait PostgresClient {
+trait HulkClient {
 
   def query(sql: String): Future[QueryResponse]
 
@@ -36,7 +36,7 @@ trait PostgresClient {
   def close(): Future[Unit]
 }
 
-private class PostgresClientImpl(connection: db.Connection) extends PostgresClient {
+private class HulkClientImpl(connection: db.Connection) extends HulkClient {
 
   private def mapResultSet(rs: db.ResultSet): ResultSet = {
     val indexMap: Map[String, Int] = rs.columnNames.zipWithIndex.toMap
@@ -92,11 +92,11 @@ private class PostgresClientImpl(connection: db.Connection) extends PostgresClie
   def close(): Future[Unit] = connection.disconnect.map(_ => Unit)
 }
 
-object PostgresClient {
+object HulkClient {
 
-  def from(connection: db.Connection): PostgresClient = new PostgresClientImpl(connection)
+  def from(connection: db.Connection): HulkClient = new HulkClientImpl(connection)
 
-  def pooled(conf: db.Configuration, connectTimeout: Duration = 5.seconds): PostgresClient = {
+  def pooled(conf: db.Configuration, connectTimeout: Duration = 5.seconds): HulkClient = {
     val factory = new CockroachConnectionFactory(conf)
     val pool = new ConnectionPool(factory, PoolConfiguration.Default)
     from(Await.result(pool.connect, connectTimeout))

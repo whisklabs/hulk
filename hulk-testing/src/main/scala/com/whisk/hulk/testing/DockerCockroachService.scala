@@ -8,26 +8,25 @@ import scala.concurrent.duration._
 
 trait DockerCockroachService extends DockerTestKitForAll { self: Suite =>
 
-  def PostgresAdvertisedPort = 26257
-  val PostgresUser = "root"
-  val PostgresPassword = None
-  val PostgresDatabase = "test"
+  def CockroachAdvertisedPort = 26257
+  val CockroachUser = "root"
+  val CockroachDatabase = "test"
 
-  protected val postgresContainer = ContainerSpec("cockroachdb/cockroach:v1.1.2")
-    .withExposedPorts(PostgresAdvertisedPort)
+  protected val cockroachContainer = ContainerSpec("cockroachdb/cockroach:v1.1.2")
+    .withExposedPorts(CockroachAdvertisedPort)
     .withReadyChecker(
       DockerReadyChecker
         .Jdbc(
           driverClass = "org.postgresql.Driver",
-          user = PostgresUser,
-          password = PostgresPassword,
+          user = CockroachUser,
+          password = None,
           database = None,
-          port = Some(PostgresAdvertisedPort)
+          port = Some(CockroachAdvertisedPort)
         )
         .looped(25, 1.second)
     )
     .withCommand("start", "--insecure")
     .toContainer
 
-  override val managedContainers: ManagedContainers = postgresContainer.toManagedContainer
+  override val managedContainers: ManagedContainers = cockroachContainer.toManagedContainer
 }

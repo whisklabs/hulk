@@ -3,7 +3,7 @@ package com.whisk.hulk.tests
 import java.util.UUID
 
 import com.whisk.hulk.Row
-import com.whisk.hulk.testing.PostgresTestkit
+import com.whisk.hulk.testing.CockroachTestKit
 import io.circe.{Decoder, Json, JsonObject}
 import io.circe.syntax._
 import org.scalatest.concurrent.ScalaFutures
@@ -12,7 +12,7 @@ import org.scalatest.{FunSuite, MustMatchers}
 import com.whisk.hulk.circe._
 import scala.concurrent.ExecutionContext.Implicits.global
 
-class CirceDecodersTest extends FunSuite with MustMatchers with PostgresTestkit with ScalaFutures {
+class CirceDecodersTest extends FunSuite with MustMatchers with CockroachTestKit with ScalaFutures {
 
   case class Recipe(id: String, name: String)
 
@@ -21,7 +21,7 @@ class CirceDecodersTest extends FunSuite with MustMatchers with PostgresTestkit 
   private implicit val defaultPatience =
     PatienceConfig(timeout = Span(2, Seconds), interval = Span(5, Millis))
 
-  private lazy val client = pgClient.get()
+  private lazy val client = hulkClient.get()
 
   private def createTable() = {
     client.query("""

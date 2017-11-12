@@ -5,7 +5,7 @@ import java.util.concurrent.atomic.AtomicReference
 
 import com.github.mauricio.async.db.Configuration
 import com.github.mauricio.async.db.postgresql.PostgreSQLConnection
-import com.whisk.hulk.PostgresClient
+import com.whisk.hulk.HulkClient
 import com.whisk.hulk.cockroach.CockroachColumnDecoderRegistry
 import org.scalatest.Suite
 import org.slf4j.LoggerFactory
@@ -14,30 +14,30 @@ import scala.concurrent.Await
 import scala.concurrent.duration._
 import scala.io.Source
 
-trait PostgresTestkit extends DockerCockroachService { self: Suite =>
+trait CockroachTestKit extends DockerCockroachService { self: Suite =>
 
-  private val log = LoggerFactory.getLogger(classOf[PostgresTestkit])
+  private val log = LoggerFactory.getLogger(classOf[CockroachTestKit])
 
-  protected val pgClient: AtomicReference[PostgresClient] = new AtomicReference[PostgresClient]()
+  protected val hulkClient: AtomicReference[HulkClient] = new AtomicReference[HulkClient]()
 
-  protected val pgClientLatch = new CountDownLatch(1)
+  protected val hulkClientLatch = new CountDownLatch(1)
 
-  def pgInitSchemaPaths: Seq[String] = Seq()
+  def hulkInitSchemaPaths: Seq[String] = Seq()
 
   override def afterStart(): Unit = {
     super.afterStart()
-    val port = postgresContainer.mappedPort(PostgresAdvertisedPort)
+    val port = cockroachContainer.mappedPort(CockroachAdvertisedPort)
 
-    val client = createClient()
-    pgClient.set(client)
-    pgClientLatch.countDown()
+    val client = createHulkClient()
+    hulkClient.set(client)
+    hulkClientLatch.countDown()
 
-    if (pgInitSchemaPaths.nonEmpty) {
+    if (hulkInitSchemaPaths.nonEmpty) {
       // need to create schemas
       log.info(s"initialising schemas for paths:")
-      pgInitSchemaPaths.foreach(p => log.info("  - " + p))
+      hulkInitSchemaPaths.foreach(p => log.info("  - " + p))
 
-      val createSchemas: Seq[String] = pgInitSchemaPaths.map { p =>
+      val createSchemas: Seq[String] = hulkInitSchemaPaths.map { p =>
         Source.fromInputStream(this.getClass.getResourceAsStream(p)).mkString
       }
 
@@ -51,18 +51,17 @@ trait PostgresTestkit extends DockerCockroachService { self: Suite =>
     }
   }
 
-  protected def createClient(): PostgresClient = {
+  protected def createHulkClient(): HulkClient = {
     val host = dockerClient.getHost
-    val port = postgresContainer.mappedPort(PostgresAdvertisedPort)
+    val port = cockroachContainer.mappedPort(CockroachAdvertisedPort)
     val conf = Configuration(
-      username = PostgresUser,
+      username = CockroachUser,
       host = host,
-      port = port,
-      password = PostgresPassword
+      port = port
     )
     val connection =
       new PostgreSQLConnection(conf, decoderRegistry = CockroachColumnDecoderRegistry.Instance)
     Await.result(connection.connect, 5.seconds)
-    PostgresClient.from(connection)
+    HulkClient.from(connection)
   }
 }

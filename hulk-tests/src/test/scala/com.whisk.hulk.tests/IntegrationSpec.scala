@@ -4,7 +4,7 @@ import java.sql.Timestamp
 import java.time.Instant
 
 import com.whisk.hulk.{ColumnNameNotFound, OK}
-import com.whisk.hulk.testing.PostgresTestkit
+import com.whisk.hulk.testing.CockroachTestKit
 import org.scalatest.{FunSuite, MustMatchers}
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.time.{Millis, Seconds, Span}
@@ -12,18 +12,18 @@ import org.scalatest.time.{Millis, Seconds, Span}
 import scala.concurrent.duration._
 import scala.concurrent.Await
 
-class IntegrationSpec extends FunSuite with PostgresTestkit with ScalaFutures with MustMatchers {
+class IntegrationSpec extends FunSuite with CockroachTestKit with ScalaFutures with MustMatchers {
 
   private implicit val defaultPatience =
     PatienceConfig(timeout = Span(2, Seconds), interval = Span(5, Millis))
 
-  private lazy val client = pgClient.get()
+  private lazy val client = hulkClient.get()
 
-  val pgTestTable = "test.test_table"
+  val testTable = "test.test_table"
 
   def cleanDb() = {
     Await.ready(client.query("CREATE DATABASE IF NOT EXISTS test"), 5.seconds)
-    val dropResult = client.executeUpdate("DROP TABLE IF EXISTS %s".format(pgTestTable)).futureValue
+    val dropResult = client.executeUpdate("DROP TABLE IF EXISTS %s".format(testTable)).futureValue
 
     val createTableResult = client.executeUpdate("""
         |CREATE TABLE %s (
@@ -34,7 +34,7 @@ class IntegrationSpec extends FunSuite with PostgresTestkit with ScalaFutures wi
         | timestamp_field TIMESTAMP WITH TIME ZONE,
         | bool_field BOOLEAN
         |)
-      """.stripMargin.format(pgTestTable)).futureValue
+      """.stripMargin.format(testTable)).futureValue
   }
 
   def insertSampleData(): Unit = {
@@ -47,7 +47,7 @@ class IntegrationSpec extends FunSuite with PostgresTestkit with ScalaFutures wi
           | ('hello', 7787, -42.51, '2013-12-24 07:01:00-08:00', FALSE),
           | ('hello', null, null, '2015-02-24 07:01:00-08:00', null),
           | ('goodbye', 4567, 15.8, '2015-01-09 16:55:12+05:00', FALSE)
-        """.stripMargin.format(pgTestTable))
+        """.stripMargin.format(testTable))
 
     val response = insertDataQuery.futureValue
 
@@ -60,7 +60,7 @@ class IntegrationSpec extends FunSuite with PostgresTestkit with ScalaFutures wi
 
     val resultRows = client
       .select(
-        "SELECT * FROM %s WHERE str_field='hello' ORDER BY timestamp_field".format(pgTestTable)
+        "SELECT * FROM %s WHERE str_field='hello' ORDER BY timestamp_field".format(testTable)
       )(identity)
       .futureValue
 
@@ -90,7 +90,7 @@ class IntegrationSpec extends FunSuite with PostgresTestkit with ScalaFutures wi
 
     val resultRows = client
       .prepareAndQuery(
-        s"""INSERT INTO $pgTestTable(str_field, int_field, double_field, timestamp_field, bool_field)
+        s"""INSERT INTO $testTable(str_field, int_field, double_field, timestamp_field, bool_field)
               VALUES ('string_key', 9012, 15.8, '2015-01-09 16:55:12+05:00', FALSE)
               RETURNING *"""
       )(identity)
@@ -103,7 +103,7 @@ class IntegrationSpec extends FunSuite with PostgresTestkit with ScalaFutures wi
     val id = firstRow.get[Long]("id")
 
     val selectedById = client
-      .prepareAndQuery("SELECT * FROM %s WHERE id=?".format(pgTestTable), id)(identity)
+      .prepareAndQuery("SELECT * FROM %s WHERE id=?".format(testTable), id)(identity)
       .futureValue
 
     selectedById.size mustEqual 1
@@ -116,7 +116,7 @@ class IntegrationSpec extends FunSuite with PostgresTestkit with ScalaFutures wi
 
     val updateQueryResponse = client
       .executeUpdate(
-        "UPDATE %s SET str_field='hello_updated' where int_field=4567".format(pgTestTable)
+        "UPDATE %s SET str_field='hello_updated' where int_field=4567".format(testTable)
       )
       .futureValue
 
@@ -124,7 +124,7 @@ class IntegrationSpec extends FunSuite with PostgresTestkit with ScalaFutures wi
 
     val resultRows = client
       .select(
-        "SELECT * FROM %s WHERE str_field='hello_updated'".format(pgTestTable)
+        "SELECT * FROM %s WHERE str_field='hello_updated'".format(testTable)
       )(identity)
       .futureValue
 
@@ -139,7 +139,7 @@ class IntegrationSpec extends FunSuite with PostgresTestkit with ScalaFutures wi
     val response = client
       .executeUpdate(
         "DELETE FROM %s WHERE str_field='hello'"
-          .format(pgTestTable)
+          .format(testTable)
       )
       .futureValue
 
@@ -147,7 +147,7 @@ class IntegrationSpec extends FunSuite with PostgresTestkit with ScalaFutures wi
 
     val resultRows = client
       .select(
-        "SELECT * FROM %s".format(pgTestTable)
+        "SELECT * FROM %s".format(testTable)
       )(identity)
       .futureValue
 
@@ -160,7 +160,7 @@ class IntegrationSpec extends FunSuite with PostgresTestkit with ScalaFutures wi
     insertSampleData()
 
     val resultRows = client
-      .prepareAndQuery("SELECT * FROM %s WHERE str_field=? AND bool_field=?".format(pgTestTable),
+      .prepareAndQuery("SELECT * FROM %s WHERE str_field=? AND bool_field=?".format(testTable),
                        "hello",
                        true)(identity)
       .futureValue
@@ -178,8 +178,7 @@ class IntegrationSpec extends FunSuite with PostgresTestkit with ScalaFutures wi
 
     val numRows = client
       .prepareAndExecute(
-        "UPDATE %s SET str_field = ?, timestamp_field = ? where int_field = 4567".format(
-          pgTestTable),
+        "UPDATE %s SET str_field = ?, timestamp_field = ? where int_field = 4567".format(testTable),
         "hello_updated",
         Instant.now()
       )
@@ -187,8 +186,7 @@ class IntegrationSpec extends FunSuite with PostgresTestkit with ScalaFutures wi
 
     val resultRows = client
       .select(
-        "SELECT * from %s WHERE str_field = 'hello_updated' AND int_field = 4567".format(
-          pgTestTable)
+        "SELECT * from %s WHERE str_field = 'hello_updated' AND int_field = 4567".format(testTable)
       )(identity)
       .futureValue
 
@@ -201,7 +199,7 @@ class IntegrationSpec extends FunSuite with PostgresTestkit with ScalaFutures wi
 
     val numRows = client
       .prepareAndExecute(
-        "UPDATE %s SET str_field = ? where int_field = 4567".format(pgTestTable),
+        "UPDATE %s SET str_field = ? where int_field = 4567".format(testTable),
         Some("hello_updated_some")
       )
       .futureValue
@@ -209,7 +207,7 @@ class IntegrationSpec extends FunSuite with PostgresTestkit with ScalaFutures wi
     val resultRows = client
       .select(
         "SELECT * from %s WHERE str_field = 'hello_updated_some' AND int_field = 4567".format(
-          pgTestTable)
+          testTable)
       )(identity)
       .futureValue
 
@@ -222,14 +220,14 @@ class IntegrationSpec extends FunSuite with PostgresTestkit with ScalaFutures wi
 
     val numRows = client
       .prepareAndExecute(
-        "UPDATE %s SET str_field = ? where int_field = 4567".format(pgTestTable),
+        "UPDATE %s SET str_field = ? where int_field = 4567".format(testTable),
         None: Option[String]
       )
       .futureValue
 
     val resultRows = client
       .select(
-        "SELECT * from %s WHERE str_field IS NULL AND int_field = 4567".format(pgTestTable)
+        "SELECT * from %s WHERE str_field IS NULL AND int_field = 4567".format(testTable)
       )(identity)
       .futureValue
 
@@ -242,7 +240,7 @@ class IntegrationSpec extends FunSuite with PostgresTestkit with ScalaFutures wi
 
     val resultRows = client
       .prepareAndQuery(
-        "UPDATE %s SET str_field = ? where int_field = 4567 RETURNING *".format(pgTestTable),
+        "UPDATE %s SET str_field = ? where int_field = 4567 RETURNING *".format(testTable),
         "hello_updated"
       )(identity)
       .futureValue
@@ -257,14 +255,14 @@ class IntegrationSpec extends FunSuite with PostgresTestkit with ScalaFutures wi
 
     client
       .prepareAndExecute(
-        s"""INSERT INTO $pgTestTable(str_field, int_field, double_field, timestamp_field, bool_field)
+        s"""INSERT INTO $testTable(str_field, int_field, double_field, timestamp_field, bool_field)
               VALUES ('delete', 9012, 15.8, '2015-01-09 16:55:12+05:00', FALSE)"""
       )
       .futureValue
 
     val resultRows = client
       .prepareAndQuery(
-        "DELETE FROM %s where int_field = 9012 RETURNING *".format(pgTestTable)
+        "DELETE FROM %s where int_field = 9012 RETURNING *".format(testTable)
       )(identity)
       .futureValue
 
@@ -277,7 +275,7 @@ class IntegrationSpec extends FunSuite with PostgresTestkit with ScalaFutures wi
     insertSampleData()
     val resultRows = client
       .prepareAndQuery(
-        "UPDATE %s SET str_field = ? where str_field = ? RETURNING *".format(pgTestTable),
+        "UPDATE %s SET str_field = ? where str_field = ? RETURNING *".format(testTable),
         "hello_updated",
         "xxxx"
       )(identity)
@@ -293,7 +291,7 @@ class IntegrationSpec extends FunSuite with PostgresTestkit with ScalaFutures wi
 
     val resultRows = client
       .prepareAndQuery(
-        "DELETE FROM %s WHERE str_field=?".format(pgTestTable),
+        "DELETE FROM %s WHERE str_field=?".format(testTable),
         "xxxx"
       )(identity)
       .futureValue
