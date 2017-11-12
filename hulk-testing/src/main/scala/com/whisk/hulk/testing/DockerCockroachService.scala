@@ -10,7 +10,7 @@ trait DockerCockroachService extends DockerTestKitForAll { self: Suite =>
 
   def PostgresAdvertisedPort = 26257
   val PostgresUser = "root"
-  val PostgresPassword = ""
+  val PostgresPassword = None
   val PostgresDatabase = "test"
 
   protected val postgresContainer = ContainerSpec("cockroachdb/cockroach:v1.1.2")
@@ -19,9 +19,10 @@ trait DockerCockroachService extends DockerTestKitForAll { self: Suite =>
       DockerReadyChecker
         .Jdbc(
           driverClass = "org.postgresql.Driver",
-          urlFunc = port => s"jdbc:postgresql://${dockerClient.getHost}:$port/test",
           user = PostgresUser,
-          password = PostgresPassword
+          password = PostgresPassword,
+          database = None,
+          port = Some(PostgresAdvertisedPort)
         )
         .looped(25, 1.second)
     )

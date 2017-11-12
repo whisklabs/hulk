@@ -45,7 +45,7 @@ lazy val testing = project
     name := "hulk-testing",
     commonSettings,
     libraryDependencies ++= Seq(
-      "com.whisk" %% "docker-testkit-scalatest" % "0.10.0-beta1",
+      "com.whisk" %% "docker-testkit-scalatest" % "0.10.0-beta2",
       "org.postgresql" % "postgresql" % "42.1.4"
     )
   )

@@ -57,7 +57,7 @@ trait PostgresTestkit extends DockerCockroachService { self: Suite =>
       username = PostgresUser,
       host = host,
       port = port,
-      password = Some(PostgresPassword)
+      password = PostgresPassword
     )
     val connection = new PostgreSQLConnection(conf)
     Await.result(connection.connect, 5.seconds)
