@@ -4,6 +4,7 @@ services:
 
 before_install:
   - docker pull quay.io/whisk/fastboot-postgres:9.6.5
+  - docker pull cockroachdb/cockroach:v1.1.2
 
 language: scala
 
