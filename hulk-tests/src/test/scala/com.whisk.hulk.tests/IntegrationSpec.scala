@@ -147,8 +147,9 @@ class IntegrationSpec extends FunSuite with PostgresTestkit with ScalaFutures wi
 
     val numRows = client
       .prepareAndExecute(
-        "UPDATE %s SET str_field = ? where int_field = 4567".format(pgTestTable),
-        "hello_updated"
+        "UPDATE %s SET str_field = ?, timestamp_field = ? where int_field = 4567".format(pgTestTable),
+        "hello_updated",
+        Instant.now()
       )
       .futureValue
 

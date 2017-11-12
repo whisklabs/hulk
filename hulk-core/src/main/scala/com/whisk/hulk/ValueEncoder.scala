@@ -1,7 +1,12 @@
 package com.whisk.hulk
 
+import java.time.Instant
+
+import org.joda.time.DateTime
+
 /**
   * Typeclass responsible for encoding a parameter of type T for sending to postgres
+  *
   * @tparam T The type which it encodes
   */
 trait ValueEncoder[T] {
@@ -24,6 +29,7 @@ object ValueEncoder {
   implicit val float: ValueEncoder[Float] = identityInst
   implicit val double: ValueEncoder[Double] = identityInst
   implicit val boolean: ValueEncoder[Boolean] = identityInst
+  implicit val instant: ValueEncoder[Instant] = instance(v => new DateTime(v.toEpochMilli))
 
   @inline final implicit def option[T](implicit encodeT: ValueEncoder[T]): ValueEncoder[Option[T]] =
     new ValueEncoder[Option[T]] {
