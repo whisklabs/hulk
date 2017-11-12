@@ -16,5 +16,5 @@ Driver's API is hugely inspired by [finagle-postgres](https://github.com/finagle
 ### Installation
 
 ```scala
-libraryDependencies += "com.whisk" % "hulk-core_2.12" % "0.1.1"
+libraryDependencies += "com.whisk" % "hulk-core_2.12" % "0.1.3"
 ```
