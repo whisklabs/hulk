@@ -80,7 +80,8 @@ object ValueDecoder {
   }
 
   implicit val instant: ValueDecoder[Instant] = fromPF {
-    case v: java.sql.Timestamp     => v.toInstant
-    case v: org.joda.time.DateTime => Instant.ofEpochMilli(v.getMillis)
+    case v: java.sql.Timestamp          => v.toInstant
+    case v: org.joda.time.LocalDateTime => Instant.ofEpochMilli(v.toDateTime.getMillis)
+    case v: org.joda.time.DateTime      => Instant.ofEpochMilli(v.getMillis)
   }
 }
