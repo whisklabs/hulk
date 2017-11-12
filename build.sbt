@@ -27,7 +27,7 @@ lazy val root = project
   .in(file("."))
   .settings(commonSettings)
   .settings(publish := {}, publishLocal := {}, packagedArtifacts := Map.empty)
-  .aggregate(core, testing, circe)
+  .aggregate(core, testing, circe, tests)
 
 lazy val core = project
   .in(file("hulk-core"))
@@ -67,6 +67,9 @@ lazy val tests = project
   .in(file("hulk-tests"))
   .settings(
     name := "hulk-tests",
-    commonSettings
+    commonSettings,
+    publish := {},
+    publishLocal := {},
+    packagedArtifacts := Map.empty
   )
   .dependsOn(core % Test, testing % Test)
