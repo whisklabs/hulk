@@ -2,6 +2,7 @@ package com.whisk.hulk.tests
 
 import java.sql.Timestamp
 import java.time.Instant
+import java.util.UUID
 
 import com.whisk.hulk.{ColumnNameNotFound, OK}
 import com.whisk.hulk.testing.CockroachTestKit
@@ -297,6 +298,34 @@ class IntegrationSpec extends FunSuite with CockroachTestKit with ScalaFutures w
       .futureValue
 
     resultRows.size must equal(0)
+  }
+
+  test("support UUID data type") {
+    client
+      .query(
+        """
+                   |CREATE TABLE test.uuid_table(id UUID PRIMARY KEY DEFAULT gen_random_uuid(), name STRING);
+                 """.stripMargin)
+      .futureValue
+
+    val resultRows = client
+      .prepareAndQuery("INSERT INTO test.uuid_table(name) VALUES ('a'), ('b'), ('c') RETURNING *")(
+        identity)
+      .futureValue
+
+    resultRows.size must equal(3)
+
+    val uuid = UUID.randomUUID()
+    client
+      .prepareAndExecute("INSERT INTO test.uuid_table(id, name) VALUES (?, ?)", uuid, "test_name")
+      .futureValue
+
+    val fetched = client
+      .prepareAndQuery("select * from test.uuid_table where id = ?", uuid)(identity)
+      .futureValue
+    fetched.size must equal(1)
+    fetched.head.get[UUID]("id") mustEqual uuid
+    fetched.head.get[String]("name") mustEqual "test_name"
   }
 
   test("support multi-statement DDL") {

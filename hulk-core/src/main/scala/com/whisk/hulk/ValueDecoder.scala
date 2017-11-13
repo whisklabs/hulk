@@ -1,6 +1,7 @@
 package com.whisk.hulk
 
 import java.time.Instant
+import java.util.UUID
 
 import scala.reflect.ClassTag
 import scala.util.{Failure, Success, Try}
@@ -77,6 +78,8 @@ object ValueDecoder {
     case v: java.lang.Boolean => v
     case v: Boolean           => v
   }
+
+  implicit val uuid: ValueDecoder[UUID] = directType[UUID]
 
   implicit val instant: ValueDecoder[Instant] = fromPF {
     case v: java.sql.Timestamp          => v.toInstant
