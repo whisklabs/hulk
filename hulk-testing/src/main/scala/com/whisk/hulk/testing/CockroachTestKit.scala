@@ -4,9 +4,7 @@ import java.util.concurrent.CountDownLatch
 import java.util.concurrent.atomic.AtomicReference
 
 import com.github.mauricio.async.db.Configuration
-import com.github.mauricio.async.db.postgresql.PostgreSQLConnection
 import com.whisk.hulk.HulkClient
-import com.whisk.hulk.cockroach.CockroachColumnDecoderRegistry
 import org.scalatest.Suite
 import org.slf4j.LoggerFactory
 
@@ -57,11 +55,9 @@ trait CockroachTestKit extends DockerCockroachService { self: Suite =>
     val conf = Configuration(
       username = CockroachUser,
       host = host,
-      port = port
+      port = port,
+      testTimeout = 10.seconds
     )
-    val connection =
-      new PostgreSQLConnection(conf, decoderRegistry = CockroachColumnDecoderRegistry.Instance)
-    Await.result(connection.connect, 5.seconds)
-    HulkClient.from(connection)
+    HulkClient.pooled(conf)
   }
 }

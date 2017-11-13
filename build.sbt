@@ -20,7 +20,8 @@ lazy val commonSettings = inThisBuild(
                 email = "viktortnk@gmail.com",
                 url = url("https://finelydistributed.io/"))
     ),
-    publishTo := Some(Opts.resolver.sonatypeStaging)
+    publishTo := Some(Opts.resolver.sonatypeStaging),
+    parallelExecution in Test := false
   ))
 
 lazy val root = project

@@ -10,20 +10,17 @@ import org.scalatest.{FunSuite, MustMatchers}
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.time.{Millis, Seconds, Span}
 
-import scala.concurrent.duration._
-import scala.concurrent.Await
-
 class IntegrationSpec extends FunSuite with CockroachTestKit with ScalaFutures with MustMatchers {
 
   private implicit val defaultPatience =
-    PatienceConfig(timeout = Span(2, Seconds), interval = Span(5, Millis))
+    PatienceConfig(timeout = Span(5, Seconds), interval = Span(5, Millis))
 
   private lazy val client = hulkClient.get()
 
   val testTable = "test.test_table"
 
   def cleanDb() = {
-    Await.ready(client.query("CREATE DATABASE IF NOT EXISTS test"), 5.seconds)
+    client.query("CREATE DATABASE IF NOT EXISTS test").futureValue
     val dropResult = client.executeUpdate("DROP TABLE IF EXISTS %s".format(testTable)).futureValue
 
     val createTableResult = client.executeUpdate("""

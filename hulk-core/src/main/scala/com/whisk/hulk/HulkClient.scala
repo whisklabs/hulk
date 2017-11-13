@@ -96,9 +96,12 @@ object HulkClient {
 
   def from(connection: db.Connection): HulkClient = new HulkClientImpl(connection)
 
-  def pooled(conf: db.Configuration, connectTimeout: Duration = 5.seconds): HulkClient = {
+  def pooled(conf: db.Configuration,
+             poolConfiguration: PoolConfiguration = PoolConfiguration.Default): HulkClient = {
     val factory = new CockroachConnectionFactory(conf)
-    val pool = new ConnectionPool(factory, PoolConfiguration.Default)
-    from(Await.result(pool.connect, connectTimeout))
+    val pool = new ConnectionPool(factory, poolConfiguration)
+    val client = from(pool)
+    Await.ready(pool.sendQuery("select 0"), conf.testTimeout)
+    client
   }
 }

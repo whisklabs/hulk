@@ -19,7 +19,7 @@ class CirceDecodersTest extends FunSuite with MustMatchers with CockroachTestKit
   case class RecipeMetadata(cuisine: Option[String] = None, mealType: Option[String] = None)
 
   private implicit val defaultPatience =
-    PatienceConfig(timeout = Span(2, Seconds), interval = Span(5, Millis))
+    PatienceConfig(timeout = Span(5, Seconds), interval = Span(100, Millis))
 
   private lazy val client = hulkClient.get()
 
