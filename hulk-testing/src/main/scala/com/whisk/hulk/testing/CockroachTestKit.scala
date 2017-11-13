@@ -58,6 +58,6 @@ trait CockroachTestKit extends DockerCockroachService { self: Suite =>
       port = port,
       testTimeout = 10.seconds
     )
-    HulkClient.pooled(conf)
+    HulkClient.fromAsyncPool(5, conf)
   }
 }

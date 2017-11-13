@@ -1,8 +1,9 @@
 package com.whisk.hulk
 
 import com.github.mauricio.async.db
+import com.github.mauricio.async.db.Configuration
 import com.github.mauricio.async.db.pool.{ConnectionPool, PoolConfiguration}
-import com.whisk.hulk.cockroach.CockroachConnectionFactory
+import com.whisk.hulk.cockroach.{AsyncConnectionPool, CockroachConnectionFactory, PooledHulkClient}
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
@@ -31,9 +32,7 @@ trait HulkClient {
    */
   def prepareAndExecute(sql: String, params: Param[_]*): Future[Long]
 
-  def isConnected: Boolean
-
-  def close(): Future[Unit]
+  def close(): Unit
 }
 
 private class HulkClientImpl(connection: db.Connection) extends HulkClient {
@@ -89,7 +88,7 @@ private class HulkClientImpl(connection: db.Connection) extends HulkClient {
 
   def isConnected: Boolean = connection.isConnected
 
-  def close(): Future[Unit] = connection.disconnect.map(_ => Unit)
+  def close(): Unit = connection.disconnect.map(_ => Unit)
 }
 
 object HulkClient {
@@ -103,5 +102,9 @@ object HulkClient {
     val client = from(pool)
     Await.ready(pool.sendQuery("select 0"), conf.testTimeout)
     client
+  }
+
+  def fromAsyncPool(maxPoolSize: Int, conf: Configuration): HulkClient = {
+    new PooledHulkClient(new AsyncConnectionPool(maxPoolSize, conf))
   }
 }

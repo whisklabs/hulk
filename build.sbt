@@ -36,6 +36,7 @@ lazy val core = project
     name := "hulk-core",
     commonSettings,
     libraryDependencies ++= Seq(
+      "org.slf4j" % "slf4j-api" % "1.7.25",
       "com.github.mauricio" %% "postgresql-async" % "0.2.21",
     )
   )
